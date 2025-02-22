@@ -20,5 +20,16 @@ knowledge-distillation/
 └── README.md           # Project documentation
 ```
 
-## Features
+## How to Use
+
+Train the Teacher Model
+python teacher_train.py --epochs 20 --batch_size 128 --lr 0.001
+This command saves the model as teacher_best.pth.
+Train the Student Model
+python student_train.py --epochs 30 --batch_size 128 --lr 0.001 --T 4.0 --alpha 0.7
+This command saves the model as student_best.pth.
+Compare & Analyze Models
+python compare_models.py
+This script outputs the models' accuracy, parameter count, size, inference speed, and visualizations.
+
 
