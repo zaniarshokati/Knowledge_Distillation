@@ -18,4 +18,6 @@ knowledge-distillation/
 ├── compare_models.py   # Evaluates and compares teacher vs. student models
 └── README.md           # Project documentation
 
-## How to Use**
+
+## Features
+
