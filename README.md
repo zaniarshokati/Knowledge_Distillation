@@ -10,6 +10,7 @@ This repository demonstrates **knowledge distillation** to compress deep learnin
 
 ## File Structure
 
+```plaintext
 
 knowledge-distillation/
 ├── common.py           # Shared model definitions, data loaders, and evaluation functions
@@ -17,7 +18,7 @@ knowledge-distillation/
 ├── student_train.py    # Trains the student model via knowledge distillation
 ├── compare_models.py   # Evaluates and compares teacher vs. student models
 └── README.md           # Project documentation
-
+```
 
 ## Features
 
