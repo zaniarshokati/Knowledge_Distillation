@@ -3,6 +3,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+Figure_01.png
+Figure_02.png
+
 # Ignore model checkpoint files (generated during training)
 teacher_best.pth
 student_best.pth
@@ -15,3 +18,4 @@ untitled text 5.txt
 
 # macOS system files
 .DS_Store
+.vscode
