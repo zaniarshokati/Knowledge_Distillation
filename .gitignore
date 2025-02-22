@@ -1,0 +1,17 @@
+# Ignore Python cache files and compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Ignore model checkpoint files (generated during training)
+teacher_best.pth
+student_best.pth
+
+# Ignore the data folder (if you don't want to version large downloaded datasets)
+data/
+
+# Ignore temporary files
+untitled text 5.txt
+
+# macOS system files
+.DS_Store
