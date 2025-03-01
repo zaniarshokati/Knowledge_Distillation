@@ -1,4 +1,16 @@
-# common.py
+#!/usr/bin/env python3
+"""
+Common Utilities for Knowledge Distillation
+
+This module provides shared components for the knowledge distillation project,
+including model architectures, data loading utilities, and evaluation functions.
+
+Author: [Your Name]
+Date: [Current Date]
+"""
+
+from typing import Tuple, Optional
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -13,7 +25,20 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # Model Definitions
 # -------------------------
 class TeacherNet(nn.Module):
-    def __init__(self, num_classes=10):
+    """
+    Teacher network with a larger architecture.
+    
+    A CNN model with 3 convolutional blocks and a classifier head,
+    designed to achieve high accuracy on CIFAR-10.
+    """
+    
+    def __init__(self, num_classes: int = 10) -> None:
+        """
+        Initialize the teacher network.
+        
+        Args:
+            num_classes: Number of output classes
+        """
         super(TeacherNet, self).__init__()
         self.features = nn.Sequential(
             # Block 1
@@ -47,14 +72,37 @@ class TeacherNet(nn.Module):
             nn.Linear(512, num_classes)
         )
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Forward pass through the network.
+        
+        Args:
+            x: Input tensor of shape [batch_size, 3, 32, 32]
+            
+        Returns:
+            Output logits of shape [batch_size, num_classes]
+        """
         x = self.features(x)
         x = x.view(x.size(0), -1)  # flatten
         x = self.classifier(x)
         return x
 
+
 class StudentNet(nn.Module):
-    def __init__(self, num_classes=10):
+    """
+    Student network with a smaller architecture.
+    
+    A lightweight CNN model with 3 convolutional blocks and a classifier head,
+    designed to be more efficient while maintaining reasonable accuracy.
+    """
+    
+    def __init__(self, num_classes: int = 10) -> None:
+        """
+        Initialize the student network.
+        
+        Args:
+            num_classes: Number of output classes
+        """
         super(StudentNet, self).__init__()
         self.features = nn.Sequential(
             # Block 1
@@ -82,58 +130,137 @@ class StudentNet(nn.Module):
             nn.Linear(256, num_classes)
         )
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Forward pass through the network.
+        
+        Args:
+            x: Input tensor of shape [batch_size, 3, 32, 32]
+            
+        Returns:
+            Output logits of shape [batch_size, num_classes]
+        """
         x = self.features(x)
         x = x.view(x.size(0), -1)  # flatten
         x = self.classifier(x)
         return x
 
+
 # -------------------------
 # Data Loading and Evaluation
 # -------------------------
-def get_data_loaders(batch_size=128):
+def get_data_loaders(
+    batch_size: int = 128,
+    num_workers: int = 2,
+    data_root: str = './data'
+) -> Tuple[DataLoader, DataLoader]:
+    """
+    Create data loaders for CIFAR-10 training and testing.
+    
+    Args:
+        batch_size: Number of samples per batch
+        num_workers: Number of worker processes for data loading
+        data_root: Directory to store the dataset
+        
+    Returns:
+        Tuple of (train_loader, test_loader)
+    """
     # Data augmentation and normalization for training
     transform_train = transforms.Compose([
         transforms.RandomCrop(32, padding=4),
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465),
-                             (0.2023, 0.1994, 0.2010)),
+        transforms.Normalize(
+            mean=(0.4914, 0.4822, 0.4465),
+            std=(0.2023, 0.1994, 0.2010)
+        ),
     ])
 
     # Normalization for testing
     transform_test = transforms.Compose([
         transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465),
-                             (0.2023, 0.1994, 0.2010)),
+        transforms.Normalize(
+            mean=(0.4914, 0.4822, 0.4465),
+            std=(0.2023, 0.1994, 0.2010)
+        ),
     ])
 
-    trainset = torchvision.datasets.CIFAR10(root='./data', train=True,
-                                            download=True, transform=transform_train)
-    trainloader = DataLoader(trainset, batch_size=batch_size,
-                             shuffle=True, num_workers=2)
+    # Create datasets
+    try:
+        trainset = torchvision.datasets.CIFAR10(
+            root=data_root,
+            train=True,
+            download=True,
+            transform=transform_train
+        )
+        
+        testset = torchvision.datasets.CIFAR10(
+            root=data_root,
+            train=False,
+            download=True,
+            transform=transform_test
+        )
+    except Exception as e:
+        raise RuntimeError(f"Failed to load CIFAR-10 dataset: {str(e)}")
 
-    testset = torchvision.datasets.CIFAR10(root='./data', train=False,
-                                           download=True, transform=transform_test)
-    testloader = DataLoader(testset, batch_size=batch_size,
-                            shuffle=False, num_workers=2)
+    # Create data loaders
+    trainloader = DataLoader(
+        trainset,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=num_workers,
+        pin_memory=True if torch.cuda.is_available() else False
+    )
+
+    testloader = DataLoader(
+        testset,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=num_workers,
+        pin_memory=True if torch.cuda.is_available() else False
+    )
+    
     return trainloader, testloader
 
-def evaluate(model, dataloader, criterion):
+
+def evaluate(
+    model: nn.Module,
+    dataloader: DataLoader,
+    criterion: nn.Module
+) -> Tuple[float, float]:
+    """
+    Evaluate a model on a dataset.
+    
+    Args:
+        model: Neural network model to evaluate
+        dataloader: DataLoader containing evaluation data
+        criterion: Loss function
+        
+    Returns:
+        Tuple of (average_loss, accuracy)
+    """
     model.eval()
     running_loss = 0.0
     correct = 0
     total = 0
+    
     with torch.no_grad():
         for images, labels in dataloader:
             images = images.to(device)
             labels = labels.to(device)
+            
+            # Forward pass
             outputs = model(images)
             loss = criterion(outputs, labels)
+            
+            # Accumulate statistics
             running_loss += loss.item() * images.size(0)
             _, predicted = outputs.max(1)
             total += labels.size(0)
             correct += predicted.eq(labels).sum().item()
+    
+    # Calculate metrics
     avg_loss = running_loss / total
     accuracy = correct / total
+    
     return avg_loss, accuracy
